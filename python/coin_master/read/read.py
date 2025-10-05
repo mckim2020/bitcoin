@@ -29,7 +29,17 @@ class Reader:
             return None
 
 
-    def read_coin_data(self, time_step_size=1.0, n_steps=100):
+    def get_current_price(self):
+        coin_data = self.get_current_ticker()
+        return float(coin_data['price']) if coin_data else None
+
+
+    def get_current_volume(self):
+        coin_data = self.get_current_ticker()
+        return float(coin_data['volume']) if coin_data else None
+
+
+    def read_coin_data(self, time_step_size=1.0, n_steps=100, json_path=None):
         price_list = []
         volume_list = []
 

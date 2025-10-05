@@ -21,13 +21,23 @@ price_list = []
 volume_list = []
 
 for itr in range(100):
-    current_coin_data = simulator.reader.get_current_ticker()
-    price_list.append(float(current_coin_data['price']))
-    volume_list.append(float(current_coin_data['volume']))
+    price = simulator.reader.get_current_price()
+    volume = simulator.reader.get_current_volume()
+    price_list.append(price)
+    volume_list.append(volume)
     time.sleep(1)
     print(f"Iteration {itr+1}/100 - "
-          f"Price: ${float(current_coin_data['price']):,.2f}, "
-          f"Volume: {float(current_coin_data['volume']):,.2f} BTC")
+          f"Price: ${price:,.2f}, "
+          f"Volume: {volume:,.2f} BTC")
+
+# for itr in range(100):
+#     current_coin_data = simulator.reader.get_current_ticker()
+#     price_list.append(float(current_coin_data['price']))
+#     volume_list.append(float(current_coin_data['volume']))
+#     time.sleep(1)
+#     print(f"Iteration {itr+1}/100 - "
+#           f"Price: ${float(current_coin_data['price']):,.2f}, "
+#           f"Volume: {float(current_coin_data['volume']):,.2f} BTC")
 
 simulator.visualizer.plot_prices(price_list, fig_path="price_plot.png")
 simulator.visualizer.plot_volumes(volume_list, fig_path="volume_plot.png")
