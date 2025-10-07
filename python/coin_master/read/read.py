@@ -1,12 +1,15 @@
 import requests
 import json
 import time
+import numpy as np
 from datetime import datetime, timedelta
 
 
 class Reader:
-    def __init__(self, config):
+    def __init__(self, config, read_config):
         self.config = config
+        self.read_config = read_config
+        self.step = 0
 
 
     def get_current_ticker(self):
@@ -39,6 +42,18 @@ class Reader:
         return float(coin_data['volume']) if coin_data else None
 
 
+    def get_history_price(self):
+        if self.read_config['history'] is None:
+            self.read_config['history'] = np.loadtxt(self.config['history_csv'], delimiter=',', skiprows=1)
+        return self.read_config['history'][self.read_config['start_step'] + self.step, 4] # close prices
+
+
+    def get_history_volume(self):
+        if self.read_config['history'] is None:
+            self.read_config['history'] = np.loadtxt(self.config['history_csv'], delimiter=',', skiprows=1)
+        return self.read_config['history'][self.read_config['start_step'] + self.step, 5] # volume
+
+
     def read_coin_data(self, time_step_size=1.0, n_steps=100, json_path=None):
         price_list = []
         volume_list = []
@@ -55,47 +70,47 @@ class Reader:
         return price_list, volume_list
 
 
-    def get_historical_ticker(self):
-        """
-        Get historical ticker data (OHLCV) from Coinbase Pro API
+    # def get_historical_ticker(self):
+    #     """
+    #     Get historical ticker data (OHLCV) from Coinbase Pro API
         
-        Parameters
-        ----------
-        symbol: Trading pair (e.g., "BTC-USD", "ETH-USD")
-        days: Number of days of historical data
-        granularity: Time interval in seconds
-        """
-        try:
-            end_time = datetime.now()
-            start_time = end_time - timedelta(days=self.config['days'])
+    #     Parameters
+    #     ----------
+    #     symbol: Trading pair (e.g., "BTC-USD", "ETH-USD")
+    #     days: Number of days of historical data
+    #     granularity: Time interval in seconds
+    #     """
+    #     try:
+    #         end_time = datetime.now()
+    #         start_time = end_time - timedelta(days=self.config['days'])
             
-            start_str = start_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-            end_str = end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    #         start_str = start_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    #         end_str = end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
             
-            params = {
-                'start': start_str,
-                'end': end_str,
-                'granularity': self.config['granularity']
-            }
+    #         params = {
+    #             'start': start_str,
+    #             'end': end_str,
+    #             'granularity': self.config['granularity']
+    #         }
             
-            response = requests.get(self.config['history_url'], params=params)
-            response.raise_for_status()
-            data = response.json()
+    #         response = requests.get(self.config['history_url'], params=params)
+    #         response.raise_for_status()
+    #         data = response.json()
 
-            ticker_data = []
-            for candle in reversed(data):  # Reverse to get chronological order
-                ticker_info = {
-                    'timestamp': datetime.fromtimestamp(candle[0]),
-                    'low': candle[1],
-                    'high': candle[2],
-                    'open': candle[3],
-                    'close': candle[4],
-                    'volume': candle[5]
-                }
-                ticker_data.append(ticker_info)
+    #         ticker_data = []
+    #         for candle in reversed(data):  # Reverse to get chronological order
+    #             ticker_info = {
+    #                 'timestamp': datetime.fromtimestamp(candle[0]),
+    #                 'low': candle[1],
+    #                 'high': candle[2],
+    #                 'open': candle[3],
+    #                 'close': candle[4],
+    #                 'volume': candle[5]
+    #             }
+    #             ticker_data.append(ticker_info)
             
-            return ticker_data
+    #         return ticker_data
             
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching historical ticker: {e}")
-            return None
+    #     except requests.exceptions.RequestException as e:
+    #         print(f"Error fetching historical ticker: {e}")
+    #         return None
