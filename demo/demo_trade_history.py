@@ -7,7 +7,7 @@ from coin_master import Reader, Trader, Visualizer, Simulator
 config = {'current_url': "https://api.exchange.coinbase.com/products/BTC-USD/ticker",
           'history_csv': "./data/btcusd_1-min_data.csv",
           'start': 7000000,
-          'verbose': True}
+          'verbose': False}
 read_config = {'start_step': 6000000,
                'history': None}
 trade_config = {'algorithm': 'hmvt',

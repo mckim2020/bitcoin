@@ -45,13 +45,13 @@ class Reader:
     def get_history_price(self):
         if self.read_config['history'] is None:
             self.read_config['history'] = np.loadtxt(self.config['history_csv'], delimiter=',', skiprows=1)
-        return self.read_config['history'][self.read_config['start_step'] + self.step, 4] # close prices
+        return self.read_config['history'][self.read_config['start_step'] + self.step, 4][0] # close prices
 
 
     def get_history_volume(self):
         if self.read_config['history'] is None:
             self.read_config['history'] = np.loadtxt(self.config['history_csv'], delimiter=',', skiprows=1)
-        return self.read_config['history'][self.read_config['start_step'] + self.step, 5] # volume
+        return self.read_config['history'][self.read_config['start_step'] + self.step, 5][0] # volume
 
 
     def read_coin_data(self, time_step_size=1.0, n_steps=100, json_path=None):
