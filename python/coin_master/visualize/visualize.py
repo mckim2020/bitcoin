@@ -61,10 +61,10 @@ class Visualizer:
         plt.figure(figsize=(10, 10))
         plt.plot(range(len(price_list)), price_list, 
                  marker='*', linestyle='-', 
-                 label='Normalized Prices', color='black',
+                 label='Historical Prices', color='black',
                  markersize=8, linewidth=1)
         plt.plot(range(len(pred_list)), pred_list, 
-                 label='GPR Prediction',
+                 label='Predicted Prices',
                  color='red')
         if sigma is not None:
             plt.fill_between(range(len(pred_list)), 

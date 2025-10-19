@@ -162,9 +162,9 @@ class Trader:
         prices = np.mean(prices.reshape(-1, mean_every), axis=1)
         norm_prices = (prices - np.mean(prices)) / np.std(prices)
         train_prices = norm_prices[:-int(len(norm_prices) * 0.1)]
-        self.regressor.train(np.linspace(0.0, len(train_prices)-1, len(train_prices)).reshape(-1, 1), 
+        self.regressor.train_gpr(np.linspace(0.0, len(train_prices)-1, len(train_prices)).reshape(-1, 1), 
                              train_prices.reshape(-1, 1))
-        pred_prices, sigma = self.regressor.predict(np.linspace(0.0, len(norm_prices)-1, len(norm_prices)).reshape(-1, 1))
+        pred_prices, sigma = self.regressor.predict_gpr(np.linspace(0.0, len(norm_prices)-1, len(norm_prices)).reshape(-1, 1))
 
         return norm_prices, pred_prices, sigma
 
@@ -182,9 +182,9 @@ class Trader:
 
                 prices = np.array(price_history[-self.trade_config['window_size']:])
                 norm_prices = (prices - np.mean(prices)) / np.std(prices)
-                self.regressor.train(np.linspace(0.0, len(prices)-1, len(prices)).reshape(-1, 1), 
+                self.regressor.train_gpr(np.linspace(0.0, len(prices)-1, len(prices)).reshape(-1, 1), 
                                      norm_prices.reshape(-1, 1))
-                norm_prices_pred, _sigma = self.regressor.predict(np.linspace(0.0, len(prices)+9, len(prices)+10).reshape(-1, 1))
+                norm_prices_pred, _sigma = self.regressor.predict_gpr(np.linspace(0.0, len(prices)+9, len(prices)+10).reshape(-1, 1))
                 norm_prices_future = norm_prices_pred[-10:]
 
                 if np.mean(norm_prices_future) > norm_prices[-1]:
@@ -202,9 +202,67 @@ class Trader:
         self.sell(self.reader.get_history_price(), total_vol) # sell all remaining BTC
 
 
+    def hnnt_demo(self, demo_steps=1000, mean_every=10, n_epochs=1000):
+        import tqdm
+        price_history = []
+        assert demo_steps % mean_every == 0, "demo_steps must be divisible by mean_every"
+
+        for itr in tqdm.tqdm(range(demo_steps)):
+            price = self.reader.get_history_price()
+            price_history.append(price)
+            self.reader.step += self.trade_config['step_size']
+        
+        prices = np.array(price_history)
+        prices = np.mean(prices.reshape(-1, mean_every), axis=1)
+        norm_prices = (prices - np.mean(prices)) / np.std(prices)
+        steps = np.linspace(0.0, len(norm_prices)-1, len(norm_prices))
+
+        train_steps = steps[:-int(len(norm_prices) * 0.1)]
+        train_prices = norm_prices[:-int(len(norm_prices) * 0.1)]
+
+        self.regressor.train_nn(train_steps.reshape(-1, 1), train_prices.reshape(-1, 1), n_epochs=n_epochs)
+        pred_prices = self.regressor.predict_nn(steps.reshape(-1, 1))
+
+        return norm_prices, pred_prices
+
+
     def hnnt(self):
         """ Historical Neural Network Trading Algorithm """
-        pass
+        price_history = []
+
+        for itr in range(self.trade_config['stride']):
+            price = self.reader.get_history_price()
+            price_history.append(price)
+
+            if len(price_history) > self.trade_config['window_size']:
+                _total_usd, total_vol = self.evaluate_wallet()
+
+                prices = np.array(price_history[-self.trade_config['window_size']:])
+                norm_prices = (prices - np.mean(prices)) / np.std(prices)
+                steps = np.linspace(0.0, len(norm_prices)-1, len(norm_prices))
+
+                train_steps = steps[:-int(len(norm_prices) * 0.1)]
+                train_prices = norm_prices[:-int(len(norm_prices) * 0.1)]
+
+                self.regressor.train_nn(train_steps.reshape(-1, 1), 
+                                        train_prices.reshape(-1, 1), 
+                                        n_epochs=self.trade_config['n_epochs'])
+                norm_prices_pred = self.regressor.predict_nn(steps.reshape(-1, 1))
+                norm_prices_future = norm_prices_pred[-10:]
+
+                if np.mean(norm_prices_future) > norm_prices[-1]:
+                    self.buy(price, 0.01) # buy 0.01 BTC
+
+                elif np.mean(norm_prices_future) < norm_prices[-1] and total_vol > 0:
+                    self.sell(price, 0.01) # sell 0.01 BTC
+
+            self.reader.step += self.trade_config['step_size']
+
+            if self.config['verbose']:
+                print(f"[{itr}/{self.trade_config['stride']}] Current Price: ${price:,.2f}")
+        
+        total_usd, total_vol = self.evaluate_wallet()
+        self.sell(self.reader.get_history_price(), total_vol) # sell all remaining BTC
 
 
     def trade(self):
